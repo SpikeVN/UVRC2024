@@ -15,8 +15,8 @@ void MotorDriver::initialize()
 	pinMode(M4_IO1, OUTPUT);
 	pinMode(M4_IO2, OUTPUT);
 	FruitServoDriver.begin();
-	FruitServoDriver.setOscillatorFrequency(Clock_PCA9685);
-	FruitServoDriver.setPWMFreq(Motor_FREQ);
+	FruitServoDriver.setOscillatorFrequency(PCA9685_CLOCK_SPEED);
+	FruitServoDriver.setPWMFreq(MOTOR_FREQUENCY);
 	FruitServoDriver.setPWM(1, 0, 0);
 	FruitServoDriver.setPWM(2, 0, 0);
 	FruitServoDriver.setPWM(3, 0, 0);
@@ -24,53 +24,51 @@ void MotorDriver::initialize()
 	isMotorInitialized = true;
 }
 
-void MotorDriver::run(const Motor motor, int16_t pwm_input, bool dir)
+void MotorDriver::run(const Motor motor, const int16_t pwmSpeed,
+		      const bool dir) const
 {
+	int16_t A_ON, A_OFF, B_ON, B_OFF;
 	if (dir == 1) {
-		IN1 = 0;
-		IN2 = pwm_input;
-		IN3 = 0;
-		IN4 = 0;
+		A_ON = 0;
+		A_OFF = pwmSpeed;
+		B_ON = 0;
+		B_OFF = 0;
 	} else {
-		IN1 = 0;
-		IN2 = 0;
-		IN3 = 0;
-		IN4 = pwm_input;
+		A_ON = 0;
+		A_OFF = 0;
+		B_ON = 0;
+		B_OFF = pwmSpeed;
 	}
-	FruitServoDriver.setPWM(Motor_A[motor - 1], IN1, IN2);
-	FruitServoDriver.setPWM(Motor_B[motor - 1], IN3, IN4);
+	FruitServoDriver.setPWM(pinsA[motor], A_ON, A_OFF);
+	FruitServoDriver.setPWM(pinsB[motor], B_ON, B_OFF);
 }
 
-void MotorDriver::stop(const Motor motor)
+void MotorDriver::stop(const Motor motor) const
 {
-	IN1 = 0;
-	IN2 = 4096;
-	IN3 = 0;
-	IN4 = 4096;
-	FruitServoDriver.setPWM(Motor_A[motor - 1], IN1, IN2);
-	FruitServoDriver.setPWM(Motor_B[motor - 1], IN3, IN4);
+	FruitServoDriver.setPWM(pinsA[motor], 0, 4096);
+	FruitServoDriver.setPWM(pinsB[motor], 0, 4096);
 }
 
 void MotorDriver::lift(const Motor motor, const MotorOperation status,
-		       const int16_t pwm_input)
+		       const int16_t pwmSpeed)
 {
 	switch (status) {
 	case UP:
-		FruitServoDriver.setPWM(Motor_A[motor - 1], 0, pwm_input);
-		FruitServoDriver.setPWM(Motor_B[motor - 1], 0, 0);
-		lift_stt = 1;
+		FruitServoDriver.setPWM(pinsA[motor], 0, pwmSpeed);
+		FruitServoDriver.setPWM(pinsB[motor], 0, 0);
+		currentAction = UP;
 		break;
 
 	case DOWN:
-		FruitServoDriver.setPWM(Motor_A[motor - 1], 0, 0);
-		FruitServoDriver.setPWM(Motor_B[motor - 1], 0, pwm_input);
-		lift_stt = -1;
+		FruitServoDriver.setPWM(pinsA[motor], 0, 0);
+		FruitServoDriver.setPWM(pinsB[motor], 0, pwmSpeed);
+		currentAction = DOWN;
 		break;
 
 	case STOP:
-		FruitServoDriver.setPWM(Motor_A[motor - 1], 4096, 4096);
-		FruitServoDriver.setPWM(Motor_B[motor - 1], 4096, 4096);
-		lift_stt = 0;
+		FruitServoDriver.setPWM(pinsA[motor], 4096, 4096);
+		FruitServoDriver.setPWM(pinsB[motor], 4096, 4096);
+		currentAction = STOP;
 		break;
 	}
 } //up, down or stop
@@ -78,23 +76,20 @@ void ServoDriver::initialize()
 {
 	if (!isMotorInitialized) {
 		FruitServoDriver.begin();
-		FruitServoDriver.setOscillatorFrequency(Clock_PCA9685);
-		FruitServoDriver.setPWMFreq(Motor_FREQ);
+		FruitServoDriver.setOscillatorFrequency(PCA9685_CLOCK_SPEED);
+		FruitServoDriver.setPWMFreq(MOTOR_FREQUENCY);
 	}
 }
 
-void ServoDriver::setAngle(const int angle, const int servo_num) const
+void ServoDriver::execute(const Servo servo, const int angle) const
 {
-	const long tmp = map(angle, 0, 180, 400, 2600); // T_on in ms
-	// T_on = tmp / 1000.0;
+	const long tmp = map(angle, 0, 180, 400, 2400); // T_on in ms
 	Serial.println(tmp);
-	// Serial.println(T_on*1000);
-	FruitServoDriver.writeMicroseconds(servoList[servo_num - 1], tmp);
-	// pwm_val = (int) (T_on/(Ts/4096));
-	// pwm.setPWM(My_servo[servo_num-1],0,pwm_val);
+	Serial.println(servo);
+	FruitServoDriver.writeMicroseconds(servo, tmp);
 }
 
-void ServoDriver::stop(const int servo_num) const
+void ServoDriver::stop(const Servo servo)
 {
-	FruitServoDriver.setPWM(servoList[servo_num - 1], 4096, 4096);
+	FruitServoDriver.setPWM(servo, 4096, 4096);
 }

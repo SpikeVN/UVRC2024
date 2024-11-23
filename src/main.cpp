@@ -16,10 +16,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "aio.h"
+#include "globals.h"
+#include "peripherals.h"
 #include <Arduino.h>
 #include <drive.h>
-#include <globals.h>
 #include <journal.h>
+#include <movement.h>
 #include <ps2x.h>
 
 // Globals
@@ -27,19 +30,26 @@ PS2X Controller;
 MotorDriver MDriver;
 ServoDriver SDriver;
 
+Peripherals peripherals;
+Movement movement;
+EventLoop eventLoop;
+
 void loop()
 {
-	MDriver.run()
+	Controller.read_gamepad(false, false);
+	Peripherals::processInput(eventLoop, Controller, MDriver, SDriver);
+	Movement::processInput(eventLoop, Controller, MDriver, SDriver);
+	eventLoop.poll();
 }
 
 void setup()
 {
-	const auto log = Log("setup");
 	Serial.begin(9600);
+	Serial.println("");
+	const auto log = Log("setup");
 	log.info("Initializing...");
 
 	for (int i = 0; i < 10; i++) {
-		delay(100);
 		const int ecode = Controller.config_gamepad(PS2_CLK, PS2_CMD,
 							    PS2_SEL, PS2_DAT,
 							    PS2_pressures,
@@ -50,9 +60,15 @@ void setup()
 		}
 		log.warning(
 			"Cannot connect to controller. Trying again in 100ms.");
+		delay(100);
 	}
 
 	MotorDriver::initialize();
 	ServoDriver::initialize();
+
+	peripherals = Peripherals();
+	movement = Movement();
+	eventLoop = EventLoop();
+
 	log.ok("Setup complete.");
 }

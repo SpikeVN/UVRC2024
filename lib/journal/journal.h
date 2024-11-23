@@ -31,22 +31,24 @@ class Log {
          *  Logs to the serial output.
          */
 	void logf(const char *format, ...) const
-		__attribute__((format(printf, 1, 2)));
+		// C++ has implicit this argument
+		__attribute__((format(printf, 2, 3)));
+
 
 	void debug(const char *format, ...) const
-		__attribute__((format(printf, 1, 2)));
+		__attribute__((format(printf, 2, 3)));
 
 	void info(const char *format, ...) const
-		__attribute__((format(printf, 1, 2)));
+		__attribute__((format(printf, 2, 3)));
 
 	void ok(const char *format, ...) const
-		__attribute__((format(printf, 1, 2)));
+		__attribute__((format(printf, 2, 3)));
 
 	void warning(const char *format, ...) const
-		__attribute__((format(printf, 1, 2)));
+		__attribute__((format(printf, 2, 3)));
 
 	void error(const char *format, ...) const
-		__attribute__((format(printf, 1, 2)));
+		__attribute__((format(printf, 2, 3)));
 };
 
 #endif //JOURNAL_H
